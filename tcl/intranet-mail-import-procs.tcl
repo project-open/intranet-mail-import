@@ -67,6 +67,29 @@ namespace eval im_mail_import {
 	return $emails
     }
 
+    ad_proc -public extract_project_nrs { line } {
+        Extract all project_nrs (2007_xxxx) from an email header line
+    } {
+	set line [string tolower $line]
+	regsub -all {\<} $line " " line
+	regsub -all {\>} $line " " line
+	regsub -all {\"} $line " " line
+
+	set tokens [split $line " "]
+	set emails [list]
+
+	foreach token $tokens {
+	    # Tokens must be built from aphanum plus "_" or "-".
+	    if {![regexp {^[a-z0-9_\-]+$} $token match ]} { continue }
+
+	    # Discard tokens purely from alphabetical
+	    if {[regexp {^[a-z]+$} $token match ]} { continue }
+
+	    lappend emails $token
+	}
+
+	return $emails
+    }
 
     ad_proc -public map_emails_to_ids { email_list } {
 	Maps a list of emails to a list of User-IDs.
@@ -76,22 +99,41 @@ namespace eval im_mail_import {
     } {
 	ns_log Notice "im_mail_import.map_emails_to_ids: email_list=$email_list"
         set ids [list]
+	
+	set email_condition "('[join [string tolower $email_list] "', '"]')"
 
-        foreach email $email_list {
-	    set id [db_string get_party "
-		select party_id 
-		from parties 
-		where lower(email) = lower(:email)
-	    " -default ""]
+	set sql "
+		select	party_id
+		from	parties
+		where	lower(email) in $email_condition
+	"
 
-	    if {"" != $id} {
-		append ids $id
-	    }
-        }
-	ns_log Notice "im_mail_import.map_emails_to_ids: ids=$ids"
-        return $ids
+	# Add the objects of the "notes" module in order to allow for multiple
+	# email addresses per user.
+	if {[db_table_exists "im_notes"]} {
+	    append sql "
+	    UNION
+		select	object_id
+		from	im_notes
+		where	lower(note) in $email_condition
+	    "
+	}
+        return [db_list emails_to_ids $sql]
     }
 
+    ad_proc -public map_project_nrs_to_ids { project_nr_list } {
+	Maps a list of (potential) project_nrs to a list of project_ids
+    } {
+        set ids [list]
+	set condition "('[join [string tolower $project_nr_list] "', '"]')"
+
+	set sql "
+		select	project_id
+		from	im_projects
+		where	lower(project_nr) in $condition
+	"
+        return [db_list emails_to_ids $sql]
+    }
 
     ad_proc -public process_mails {
         -mail_dir:required
@@ -263,6 +305,14 @@ namespace eval im_mail_import {
 	    # that the list isn't empty.
 	    set to_ids [map_emails_to_ids $to_emails]
 	    set from_ids [map_emails_to_ids $from_emails]
+	    ns_log Notice "im_mail_import.process_mails: to_ids=$to_ids, from_ids=$from_ids"
+
+	    # Get the list of all associated projects
+	    set project_nrs [extract_project_nrs $subject_header]
+	    ns_log Notice "im_mail_import.process_mails: project_nrs=$project_nrs"
+
+	    set project_ids [map_project_nrs_to_ids $project_nrs]
+	    ns_log Notice "im_mail_import.process_mails: project_ids=$project_ids"
 
 	    # List of all ids: set to [list 0] if empty to avoid
 	    # syntax errors in SQL
@@ -272,8 +322,12 @@ namespace eval im_mail_import {
 	    set employee_ids [db_list employee_ids "select member_id from group_distinct_member_map where group_id=[im_profile_employees]"]
 	    set non_emp_ids [set_difference $all_ids $employee_ids]
 
-	    # Move to "defered" if there is no employee right now...
-            if {0 == [llength $non_emp_ids]} {
+	    set all_object_ids [set_union $non_emp_ids $project_ids]
+
+	    ns_log Notice "im_mail_import.process_mails: to_ids=$to_ids, from_ids=$from_ids, project_ids=$project_ids"
+
+	    # Move to "defered" if there is no object for this email right now...
+            if {0 == [llength $all_object_ids]} {
                 if {[catch {
                     ns_log Notice "im_mail_import.process_mails: Moving '$msg' to defered: '$defered_folder/$msg_body'"
                     append debug "Moving '$msg' to defered: '$defered_folder/$msg_body'\n"
@@ -310,6 +364,17 @@ namespace eval im_mail_import {
 		foreach non_emp_id $non_emp_ids {
 		    set rel_type "im_mail_from"
 		    set object_id_two $non_emp_id
+		    set object_id_one $cr_item_id
+		    set creation_user $user_id
+		    set creation_ip $peeraddr
+		    set rel_id [db_exec_plsql im_mail_import_new_rel {}]
+		    ns_log Notice "im_mail_import.process_mails: created relationship \#$rel_id"
+		    append debug "created relationship \#$rel_id\n"
+		}
+
+		foreach project_id $project_ids {
+		    set rel_type "im_mail_related_to"
+		    set object_id_two $project_id
 		    set object_id_one $cr_item_id
 		    set creation_user $user_id
 		    set creation_ip $peeraddr
@@ -368,7 +433,6 @@ namespace eval im_mail_import {
 
 ad_proc im_mail_import_user_component {
     {-view_name ""}
-    {-forum_order_by "priority"}
     {-rel_user_id 0}
 } {
     Show a list of imported mails
@@ -437,5 +501,15 @@ ad_proc im_mail_import_user_component {
 "
 
     return $html
+}
+
+
+
+ad_proc im_mail_import_project_component {
+    {-project_id 0}
+} {
+    Show a list of imported mails
+} {
+    return [im_mail_import_user_component -rel_user_id $project_id]
 }
 

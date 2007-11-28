@@ -48,6 +48,29 @@ select acs_rel_type__create_type (
 );
 
 
+
+
+-- create dummy relationship -
+-- we don't want to create the specified table
+select acs_rel_type__create_type (
+   'im_mail_related_to',	-- relationship (object) name
+   'Mail Related To',		-- pretty name
+   'Mail Related To',		-- pretty plural
+   'relationship',		-- supertype
+   'im_mail_import_related_to',	-- table_name
+   'rel_id',			-- id_column
+   'im_mail_import_related_to',	-- package_name
+   'acs_object',		-- object_type_one
+   'member',			-- role_one
+    0,				-- min_n_rels_one
+    null,			-- max_n_rels_one
+   'acs_object',		-- object_type_two
+   'member',			-- role_two
+   0,				-- min_n_rels_two
+   null				-- max_n_rels_two
+);
+
+
 -------------------------------------------
 -- create components
 
@@ -71,6 +94,26 @@ SELECT im_component_plugin__new (
         90,                             -- sort_order
         'im_mail_import_user_component -rel_user_id $user_id' -- component_tcl
     );
+
+
+SELECT im_component_plugin__new (
+        null,                           -- plugin_id
+        'acs_object',                   -- object_type
+        now(),                          -- creation_date
+        null,                           -- creation_user
+        null,                           -- creation_ip
+        null,                           -- context_id
+        'Project Mail Component',          -- plugin_name
+        'intranet-mail-import',         -- package_name
+        'left',                         -- location
+        '/intranet/projects/view',         -- page_url
+        null,                           -- view_name
+        120,                             -- sort_order
+        'im_mail_import_project_component -project_id $project_id' -- component_tcl
+    );
+
+
+
 
 
 --	 select im_mail_import_new_message (
