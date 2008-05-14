@@ -6,6 +6,24 @@
 --
 
 
+create sequence im_mail_import_email_stats_seq start with 1;
+create table im_mail_import_email_stats (
+	stat_id			integer,
+	stat_email		varchar(100),
+	stat_day		timestamptz,
+	stat_subject		text
+);
+
+
+create sequence im_mail_import_blacklist_seq start with 1;
+create table im_mail_import_blacklist (
+	blacklist_id		integer,
+	blacklist_email		varchar(100),
+	blacklist_day		timestamptz
+);
+
+
+
 -- create dummy relationship -
 -- we don't want to create the specified table
 select acs_rel_type__create_type (

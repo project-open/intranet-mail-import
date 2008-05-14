@@ -70,13 +70,14 @@ namespace eval im_mail_import {
     ad_proc -public extract_project_nrs { line } {
         Extract all project_nrs (2007_xxxx) from an email header line
     } {
+	ns_log Notice "im_mail_import.extract_project_nrs: line=$line"
 	set line [string tolower $line]
 	regsub -all {\<} $line " " line
 	regsub -all {\>} $line " " line
 	regsub -all {\"} $line " " line
 
 	set tokens [split $line " "]
-	set emails [list]
+	set project_nrs [list]
 
 	foreach token $tokens {
 	    # Tokens must be built from aphanum plus "_" or "-".
@@ -85,40 +86,62 @@ namespace eval im_mail_import {
 	    # Discard tokens purely from alphabetical
 	    if {[regexp {^[a-z]+$} $token match ]} { continue }
 
-	    lappend emails $token
+	    lappend project_nrs $token
 	}
 
-	return $emails
+	ns_log Notice "im_mail_import.extract_project_nrs: returning project_nrs=$project_nrs"
+	return $project_nrs
     }
 
-    ad_proc -public map_emails_to_ids { email_list } {
+    ad_proc -public map_emails_to_ids { 
+	-email_list:required
+	{-subject "" }
+    } {
 	Maps a list of emails to a list of User-IDs.
 	Skips emails that are not present in the system.
 
         @option email_list A list of email address
     } {
-	ns_log Notice "im_mail_import.map_emails_to_ids: email_list=$email_list"
+	ns_log Notice "im_mail_import.map_emails_to_ids1: email_list=$email_list"
         set ids [list]
-	
-	set email_condition "('[join [string tolower $email_list] "', '"]')"
 
 	set sql "
 		select	party_id
 		from	parties
-		where	lower(email) in $email_condition
+		where	lower(email) = :email
 	"
 
-	# Add the objects of the "notes" module in order to allow for multiple
-	# email addresses per user.
+	# "Notes" support for multiple email addresses per user.
 	if {[db_table_exists "im_notes"]} {
 	    append sql "
 	    UNION
 		select	object_id
 		from	im_notes
-		where	lower(note) in $email_condition
+		where	lower(note) = :email
 	    "
 	}
-        return [db_list emails_to_ids $sql]
+	
+	foreach email $email_list {
+	    set email [string trim [string tolower $email]]
+	    set party_ids [db_list parties $sql]
+	    foreach party_id $party_ids {
+		lappend ids $party_id
+	    }
+	    if {0 == [llength $party_ids]} {
+		# Email not found - leave a trace
+		catch {
+		    db_dml insert_email_stat "
+			insert into im_mail_import_email_stats (
+				stat_id, stat_email, stat_day, stat_subject
+			) values (
+				nextval('im_mail_import_email_stats_seq'), :email, now(), :subject
+			);
+		    "
+		} err_msg
+	    }
+	}
+
+        return $ids
     }
 
     ad_proc -public map_project_nrs_to_ids { project_nr_list } {
@@ -137,6 +160,7 @@ namespace eval im_mail_import {
 
     ad_proc -public process_mails {
         -mail_dir:required
+	{ -max_mails 20 }
     } {
         Processes all emails in MailDir
         @option mail_dir Maildir location
@@ -147,7 +171,7 @@ namespace eval im_mail_import {
 	set spam_folder "$mail_dir/spam"
 	if {![file exists $spam_folder]} {
 	    if {[catch { ns_mkdir $spam_folder } errmsg]} {
-		ns_log Notice "im_mail_import.process_mails: Error creating '$spam_folder' folder: '$errmsg'"
+		ns_log Notice "im_mail_import.process_mails0: Error creating '$spam_folder' folder: '$errmsg'"
 		append debug "Error creating '$spam_folder' folder: '$errmsg'\n"
 		return $debug
 	    }
@@ -157,7 +181,7 @@ namespace eval im_mail_import {
 	set defered_folder "$mail_dir/defered"
 	if {![file exists $defered_folder]} {
 	    if {[catch { ns_mkdir $defered_folder } errmsg]} {
-		ns_log Notice "im_mail_import.process_mails: Error creating '$defered_folder' folder: '$errmsg'"
+		ns_log Notice "im_mail_import.process_mails1: Error creating '$defered_folder' folder: '$errmsg'"
 		append debug "Error creating '$defered_folder' folder: '$errmsg'\n"
 		return $debug
 	    }
@@ -167,8 +191,8 @@ namespace eval im_mail_import {
 	set processed_folder "$mail_dir/processed"
 	if {![file exists $processed_folder]} {
 	    if {[catch { ns_mkdir $processed_folder } errmsg]} {
-		ns_log Notice "im_mail_import.process_mails: Error creating '$processed_folder' folder: '$errmsg'"
-		append debug "im_mail_import.process_mails: Error creating '$processed_folder' folder: '$errmsg'\n"
+		ns_log Notice "im_mail_import.process_mails2: Error creating '$processed_folder' folder: '$errmsg'"
+		append debug "im_mail_import.process_mails3: Error creating '$processed_folder' folder: '$errmsg'\n"
 		return $debug
 	    }
 	}
@@ -176,22 +200,22 @@ namespace eval im_mail_import {
         if {[catch {
             set messages [glob "$mail_dir/new/*"]
         } errmsg]} {
-            ns_log Notice "im_mail_import.process_mails: No messages: '$errmsg'"
+            ns_log Notice "im_mail_import.process_mails4: No messages: '$errmsg'"
             append debug "No messages: '$errmsg'\n"
             return $debug
         }
 
         set list_of_bounce_ids [list]
         set new_messages_p 0
+	set ctr 0
 
-
-	if {0 == [llength $messages]} {
-            append debug "no messages in $mail_dir/new/\n"
-	}
+	if {0 == [llength $messages]} { append debug "no messages in $mail_dir/new/\n" }
 
 	# foreach incoming mail
         foreach msg $messages {
-            ns_log Notice "im_mail_import.process_mails: mail $msg"
+
+            ns_log Notice "im_mail_import.process_mails5: mail $msg, ctr=$ctr"
+	    if {$ctr >= $max_mails}  { return $debug }
             append debug "mail $msg\n"
 
 	    # Get the last piece of the Msg
@@ -244,7 +268,7 @@ namespace eval im_mail_import {
             }
             set body "\n[join [lrange $file_lines $i end] "\n"]"
 
-	    ns_log Notice "im_mail_import.process_mails: mail_header='[join $headers "' '"]'"
+	    ns_log Notice "im_mail_import.process_mails6: mail_header='[join $headers "' '"]'"
 
             # Extract headers values
             array set email_headers $headers
@@ -255,6 +279,9 @@ namespace eval im_mail_import {
             catch {set to_header $email_headers(to)}
             catch {set subject_header $email_headers(subject)}
 
+	    # Massage the header a bit
+	    regsub {=\?iso-....-.\?.\?} $subject_header "" subject_header
+
 	    set spam_header ""
 	    if {[info exists email_headers(x-spambayes-classification)]} {
 
@@ -262,9 +289,9 @@ namespace eval im_mail_import {
 # Spambayes is trained correctly.
 #
 #		set spam_header $email_headers(x-spambayes-classification)
-		ns_log Notice "im_mail_import.process_mails: spam_header=$spam_header"
+		ns_log Notice "im_mail_import.process_mails7: spam_header=$spam_header"
 	    } else {
-		ns_log Notice "im_mail_import.process_mails: No spam header found"
+		ns_log Notice "im_mail_import.process_mails8: No spam header found"
 	    }
 
 	    set rfc822_message_id ""
@@ -274,9 +301,9 @@ namespace eval im_mail_import {
 		if {[regexp {\<([^\>]*)\>} $rfc822_message_id match id]} {
 		    set rfc822_message_id $id
 		}
-		ns_log Notice "im_mail_import.process_mails: message-id=$rfc822_message_id"
+		ns_log Notice "im_mail_import.process_mails9: message-id=$rfc822_message_id"
 	    } else {
-		ns_log Notice "im_mail_import.process_mails: No message_id found"
+		ns_log Notice "im_mail_import.process_mails10: No message_id found"
 	    }
 
             ns_log Notice "im_mail_import.process_mails: from_header=$from_header"
@@ -287,11 +314,11 @@ namespace eval im_mail_import {
 	    # Move to "/spam" if there is a Spambayes header...
             if {[string equal "spam" $spam_header] } {
                 if {[catch {
-                    ns_log Notice "im_mail_import.process_mails: Moving '$msg' to spam: '$spam_folder/$msg_body'"
+                    ns_log Notice "im_mail_import.process_mails11: Moving '$msg' to spam: '$spam_folder/$msg_body'"
                     append debug "Moving '$msg' to spam: '$spam_folder/$msg_body'\n"
                     ns_rename $msg "$spam_folder/$msg_body"
                 } errmsg]} {
-                    ns_log Notice "im_mail_import.process_mails: Error moving '$msg' to spam: '$spam_folder/$msg_body': '$errmsg'"
+                    ns_log Notice "im_mail_import.process_mails12: Error moving '$msg' to spam: '$spam_folder/$msg_body': '$errmsg'"
                     append debug "Error moving '$msg' to spam: '$spam_folder/$msg_body': '$errmsg'\n"
                 }
 		continue
@@ -303,16 +330,16 @@ namespace eval im_mail_import {
 
 	    # Map the emails to user IDs. Use zero_ids to make sure
 	    # that the list isn't empty.
-	    set to_ids [map_emails_to_ids $to_emails]
-	    set from_ids [map_emails_to_ids $from_emails]
-	    ns_log Notice "im_mail_import.process_mails: to_ids=$to_ids, from_ids=$from_ids"
+	    set to_ids [map_emails_to_ids -email_list $to_emails -subject $subject_header]
+	    set from_ids [map_emails_to_ids -email_list $from_emails -subject $subject_header]
+	    ns_log Notice "im_mail_import.process_mails13: to_ids=$to_ids, from_ids=$from_ids"
 
 	    # Get the list of all associated projects
 	    set project_nrs [extract_project_nrs $subject_header]
-	    ns_log Notice "im_mail_import.process_mails: project_nrs=$project_nrs"
+	    ns_log Notice "im_mail_import.process_mails14: project_nrs=$project_nrs"
 
 	    set project_ids [map_project_nrs_to_ids $project_nrs]
-	    ns_log Notice "im_mail_import.process_mails: project_ids=$project_ids"
+	    ns_log Notice "im_mail_import.process_mails15: project_ids=$project_ids"
 
 	    # List of all ids: set to [list 0] if empty to avoid
 	    # syntax errors in SQL
@@ -324,20 +351,23 @@ namespace eval im_mail_import {
 
 	    set all_object_ids [set_union $non_emp_ids $project_ids]
 
-	    ns_log Notice "im_mail_import.process_mails: to_ids=$to_ids, from_ids=$from_ids, project_ids=$project_ids"
+	    ns_log Notice "im_mail_import.process_mails16x: to_ids=$to_ids, from_ids=$from_ids, project_ids=$project_ids, all_oids=$all_object_ids"
 
 	    # Move to "defered" if there is no object for this email right now...
             if {0 == [llength $all_object_ids]} {
+		ns_log Notice "im_mail_import.process_mails16a: Moving mail to defered"
                 if {[catch {
-                    ns_log Notice "im_mail_import.process_mails: Moving '$msg' to defered: '$defered_folder/$msg_body'"
+                    ns_log Notice "im_mail_import.process_mails17: Moving '$msg' to defered: '$defered_folder/$msg_body'"
                     append debug "Moving '$msg' to defered: '$defered_folder/$msg_body'\n"
                     ns_rename $msg "$defered_folder/$msg_body"
                 } errmsg]} {
-                    ns_log Notice "im_mail_import.process_mails: Error moving '$msg' to defered: '$defered_folder/$msg_body': '$errmsg'"
+                    ns_log Notice "im_mail_import.process_mails18: Error moving '$msg' to defered: '$defered_folder/$msg_body': '$errmsg'"
                     append debug "Error moving '$msg' to defered: '$defered_folder/$msg_body': '$errmsg'\n"
                 }
 		continue
             }
+
+	    ns_log Notice "im_mail_import.process_mails16b: Creating email"
 
 	    # Create an OpenACS object with the mail
 	    # 
@@ -346,19 +376,23 @@ namespace eval im_mail_import {
 	    set html ""
 	    set plain $body
 	    set context_id ""
-	    set user_id [ad_get_user_id]
-	    set peeraddr [ad_conn peeraddr]
+	    ns_log Notice "im_mail_import.process_mails16c: Creating email"
+	    set user_id [db_string admin "select min(member_id) from group_distinct_member_map where group_id = [im_admin_group_id]"]
+	    set peeraddr "0.0.0.0"
 	    set approved_p 1
+	    ns_log Notice "im_mail_import.process_mails16d: Creating email"
 	    set send_date [db_string now "select now() from dual"]
 	    set header_from $from_header
 	    set header_to $to_header
 	    set rfc822_id $rfc822_message_id
-	    ns_log Notice "im_mail_import.process_mails: rfc822_id='$rfc822_id'"
+	    ns_log Notice "im_mail_import.process_mails19: rfc822_id='$rfc822_id'"
 	    append debug "rfc822_id='$rfc822_id'\n"
+
+	    ns_log Notice "im_mail_import.process_mails20a: Before catch"
 
 	    catch {
 		set cr_item_id [db_exec_plsql im_mail_import_new_message {}]
-		ns_log Notice "im_mail_import.process_mails: created spam_item \#$cr_item_id"
+		ns_log Notice "im_mail_import.process_mails20b: created spam_item \#$cr_item_id"
 		append debug "created spam_item \#$cr_item_id\n"
 
 		foreach non_emp_id $non_emp_ids {
@@ -368,7 +402,7 @@ namespace eval im_mail_import {
 		    set creation_user $user_id
 		    set creation_ip $peeraddr
 		    set rel_id [db_exec_plsql im_mail_import_new_rel {}]
-		    ns_log Notice "im_mail_import.process_mails: created relationship \#$rel_id"
+		    ns_log Notice "im_mail_import.process_mails21: created relationship \#$rel_id"
 		    append debug "created relationship \#$rel_id\n"
 		}
 
@@ -379,20 +413,23 @@ namespace eval im_mail_import {
 		    set creation_user $user_id
 		    set creation_ip $peeraddr
 		    set rel_id [db_exec_plsql im_mail_import_new_rel {}]
-		    ns_log Notice "im_mail_import.process_mails: created relationship \#$rel_id"
+		    ns_log Notice "im_mail_import.process_mails22: created relationship \#$rel_id"
 		    append debug "created relationship \#$rel_id\n"
 		}
 	    }
 
 	    # Move to "processed" 
 	    if {[catch {
-		ns_log Notice "im_mail_import.process_mails: Moving '$msg' to processed: '$processed_folder/$msg_body'"
+		ns_log Notice "im_mail_import.process_mails23: Moving '$msg' to processed: '$processed_folder/$msg_body'"
 		append debug "Moving '$msg' to processed: '$processed_folder/$msg_body'\n"
 		ns_rename $msg "$processed_folder/$msg_body"
 	    } errmsg]} {
-		ns_log Notice "im_mail_import.process_mails: Error moving '$msg' to processed: '$processed_folder/$msg_body': '$errmsg'"
+		ns_log Notice "im_mail_import.process_mails24: Error moving '$msg' to processed: '$processed_folder/$msg_body': '$errmsg'"
 		append debug "Error moving '$msg' to processes: '$processed_folder/$msg_body': '$errmsg'\n"
 	    }
+
+	    incr ctr
+
 	}
 	return $debug
     }
