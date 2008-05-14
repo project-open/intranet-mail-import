@@ -12,6 +12,7 @@ ad_page_contract {
     @author frank.bergmann@project-open.com
     @creation-date Nov 2003
 } {
+    { return_url "" }
     { bread_crum_path "" }
     {orderby "name"}
 }
@@ -28,9 +29,9 @@ if {!$user_is_admin_p} {
 }
 
 set page_title "Blacklist"
-set context_bar [im_context_bar [list /intranet-dynfield/ "DynField"] $page_title]
-set return_url [im_url_with_query]
+set context_bar [im_context_bar [list /intranet-mail-import/ "Mail Import"] $page_title]
 set current_url_without_vars [ns_conn url]
+if {"" == $return_url} { set return_url [im_url_with_query] }
 
 
 # ------------------------------------------------------------------
@@ -38,59 +39,30 @@ set current_url_without_vars [ns_conn url]
 # ------------------------------------------------------------------
 
 list::create \
-    -name missing_stats \
-    -multirow missing_stats_multirow \
-    -key stat_email \
-    -row_pretty_plural "Mail Import Stats" \
+    -name blacklist \
+    -multirow blacklist_multirow \
+    -key blacklist_id \
+    -row_pretty_plural "Blacklist" \
     -selected_format "normal" \
     -class "list" \
     -main_class "list" \
     -sub_class "narrow" \
     -bulk_actions { 
-	"Blacklist" "blacklist-action" "Blacklist this item"
+	"Remove" "blacklist-remove" "Remove item from Blacklist"
     } \
     -bulk_action_method POST \
     -bulk_action_export_vars { return_url } \
     -elements {
-        stat_count {
-            display_col stat_count
-            label "Miss Count"
-        }
-        stat_email {
-            display_col stat_email
+        blacklist_email {
             label "Email"
         }
     }
 
-db_multirow -extend { create_user_url } missing_stats_multirow mail_import_stats "
-	select
-		count(*) as stat_count,
-		stat_email
-	from
-		im_mail_import_email_stats s
-	where
-		stat_email not in (
-			select	email
-			from	parties
-			where	party_id in (
-					select member_id from group_distinct_member_map
-					where group_id = [im_employee_group_id]
-				)
-		    UNION
-			select	lower(note)
-			from	im_notes
-			where	object_id in (
-				select member_id from group_distinct_member_map
-				where group_id = [im_employee_group_id]
-			)
-		   UNION
-			select	blacklist_email
-			from	im_mail_import_blacklist
-		)
-	group by 
-		stat_email
+db_multirow -extend { create_user_url } blacklist_multirow mail_import_stats "
+	select	*
+	from	im_mail_import_blacklist
 	order by
-		stat_count DESC
+		blacklist_email
 " {
     set create_user_url [export_vars -base "asdf" {email}]
 }

@@ -47,7 +47,7 @@ list::create \
     -main_class "list" \
     -sub_class "narrow" \
     -bulk_actions { 
-	"Blacklist" "blacklist-email" "Blacklist this item"
+	"Blacklist" "blacklist-action" "Blacklist this item"
     } \
     -bulk_action_method POST \
     -bulk_action_export_vars { return_url } \

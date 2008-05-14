@@ -5,5 +5,5 @@
 
 <H1>@page_title@</h1>
 
-<listtemplate name="missing_stats"></listtemplate>
+<listtemplate name="blacklist"></listtemplate>
 
