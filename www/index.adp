@@ -5,10 +5,8 @@
 
 <H1>@page_title@</h1>
 
-<h2>Imported Emails</h2>
-<lllisttemplate name="successfull_stats"></listtemplate>
-
-<H1>Missing Users</h1>
-
-<listtemplate name="missing_stats"></listtemplate>
-
+<ul>
+<li><a href="blacklist">List of emails to ignore (Blacklist)</a>
+<li><a href="imported-emails">List of users with imported mails</a>
+<li><a href="missing-emails">List of emails that need to be defined</a>
+</ul>
