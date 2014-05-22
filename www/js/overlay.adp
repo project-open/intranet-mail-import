@@ -44,7 +44,7 @@
 
         var callback = {
             success : function(o) {
-                YAHOO.mail_import.container.overlay2 = new YAHOO.widget.Overlay("overlay2", { fixedcenter:true, visible:false,width:"720px",height:"650px" } );
+                YAHOO.mail_import.container.overlay2 = new YAHOO.widget.Overlay("overlay2", { fixedcenter:true, visible:false,width:"720px",height:"650px",zindex:"10000" } );
                 YAHOO.mail_import.container.overlay2.setBody(o.responseText + "<br><iframe src='/intranet-mail-import/mail-view?content_item_id=" + cr_item_id  + "&view_mode=body' width='700px' height='500px' frameborder='0' scrolling='yes'></iframe>");
 		// YAHOO.mail_import.container.overlay2.setFooter("<iframe src='/intranet-mail-import/mail-view?content_item_id=" + cr_item_id  + "&view_mode=body' width='px' height='800px'frameborder='0'></iframe>");
 		YAHOO.mail_import.container.overlay2.render(document.body);
