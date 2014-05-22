@@ -614,36 +614,43 @@ namespace eval im_mail_import {
 
             # Make sure the mail folder in projects exists, if not create it
 	    if {![file exists $object_path]} {
-		if {[catch { ns_mkdir $object_path } err_msg]} {
-                        ns_log Notice "save_attachments_to_object: Error creating '$object_path' folder: '$err_msg'"
-                        append debug "Error creating '$object_path' folder: '$err_msg'\n"
-                        return $debug
+		if {[catch { file mkdir $object_path } err_msg]} {
+		    global errorInfo
+		    ns_log Error "save_attachments_to_object: Error creating '$object_path' err_msg: '$err_msg' - $errorInfo"
+		    append debug "Error creating '$object_path' folder: '$err_msg'\n"
 		}
 	    }
 
             # create sub-directory to store attachments for cr_item
             append object_path "/$cr_item_id"
 
-	    if {[catch { ns_mkdir $object_path } errmsg]} {
-                    ns_log Error "save_attachments_to_object: Error creating '$object_path' folder: '$errmsg'"
-                    append debug "Error creating '$object_path' folder: '$errmsg'\n"
-                    return $debug
+	    if {![file exists $object_path]} {
+		if {[catch { file mkdir $object_path } errmsg]} {
+		    global errorInfo
+		    ns_log Error "save_attachments_to_object: Error creating '$object_path' folder: '$errmsg' - $errorInfo"
+		    append debug "Error creating '$object_path' folder: '$errmsg'\n"
+		}
 	    }
 
-	    foreach attachment $email_files {
-		append file_name $object_path "/" [lindex $attachment 2]
-		lappend link_list $file_name 
-		set content [lindex $attachment 3]
-		set fp [open $file_name w]
-                fconfigure $fp -translation binary
-                fconfigure $fp -encoding binary
-                puts -nonewline $fp $content
-                close $fp
-                set file_name ""
+	    if {[catch {
+		foreach attachment $email_files {
+		    append file_name $object_path "/" [lindex $attachment 2]
+		    lappend link_list $file_name 
+		    set content [lindex $attachment 3]
+		    set fp [open $file_name w]
+		    fconfigure $fp -translation binary
+		    fconfigure $fp -encoding binary
+		    puts -nonewline $fp $content
+		    close $fp
+		    set file_name ""
+		}
+	    } err_msg]} {
+		global errorInfo
+		ns_log Error "Error saving attachments: $errorInfo" 
 	    }
         }
       } err_msg] {
-        ns_log Error "save_attachments_to_object: Error assigning attachments for mail: $email_id: $err_msg"
+	  ns_log Error "save_attachments_to_object: Error assigning attachments for mail: $email_id: $err_msg"
       }
       return $link_list
   }
@@ -716,6 +723,7 @@ ad_proc im_mail_import_user_component {
         }
         incr ctr
     }
+
 
     if {0 == $ctr && !$yui_support_p} {
         append html "<tr> <td colspan='99' align='center'>No entries found</td></tr>"
