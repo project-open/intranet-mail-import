@@ -53,7 +53,7 @@ ad_page_contract {
     # Make sure the "Maildir/defered" folder exists"
     set defered_folder "$mail_dir/defered"
     if {![file exists $defered_folder]} {
-	if {[catch { ns_mkdir $defered_folder } errmsg]} {
+	if {[catch { file mkdir $defered_folder } errmsg]} {
 	    ns_log Notice "get_mails_from_defered_folder1: Error creating '$defered_folder' folder: '$errmsg'"
 	    append debug "Error creating '$defered_folder' folder: '$errmsg'\n"
 	    return $debug
