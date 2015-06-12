@@ -3,8 +3,8 @@
 # Copyright (C) 2004 - 2013 ]project-open[
 #
 # All rights reserved.
-# Please check http://www.project-open.org/en/project_open_license for licensing
-# details.
+# Please check http://www.project-open.com/en/license 
+# for licensing details.
 
 ad_page_contract {
     View a mail either from the CR (content_item_id != 0) or from FS (msg_id = filename) 
