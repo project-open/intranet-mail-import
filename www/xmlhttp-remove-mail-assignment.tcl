@@ -34,7 +34,7 @@ if { "im_project" == $object_type } {
      if { ![im_biz_object_member_p $user_id $object_id] } {
 	 ns_return 499 text/html "User does not have permission to remove relationship. Needs to be a member of Project Id: $object_id]"
 	 ad_script_abort
-     } elseif { ![im_permission [ad_get_user_id] view_mails_all] } {
+     } elseif { ![im_permission [ad_conn user_id] view_mails_all] } {
          ns_return 499 text/html "User does not have permission to remove relationship. Needs privilege: 'View Mails All'"
 	 ad_script_abort
      }
@@ -42,7 +42,7 @@ if { "im_project" == $object_type } {
 
 if { "user" == $object_type } {
    # User needs needs to have privilege 'View Mails All'  
-   if { ![im_permission [ad_get_user_id] view_mails_all] } {
+   if { ![im_permission [ad_conn user_id] view_mails_all] } {
        ns_return 499 text/html "User does not have permission to remove relationship. Needs privilege: 'View Mails All'"
        ad_script_abort
    }

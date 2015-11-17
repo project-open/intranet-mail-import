@@ -668,12 +668,12 @@ ad_proc im_mail_import_user_component {
     set bgcolor(1) " class=rowodd"
 
     if {0 == $rel_user_id} {
-        set rel_user_id [ad_get_user_id]
+        set rel_user_id [ad_conn user_id]
     }
 
     # Other users than the user himself need to be admins or have the privilege view_mails_all
-    if { $rel_user_id != [ad_get_user_id]  } {
-        if { ![im_is_user_site_wide_or_intranet_admin [ad_get_user_id]] && ![im_permission [ad_get_user_id] view_mails_all] } {
+    if { $rel_user_id != [ad_conn user_id]  } {
+        if { ![im_is_user_site_wide_or_intranet_admin [ad_conn user_id]] && ![im_permission [ad_conn user_id] view_mails_all] } {
 	    return "No Permission"
             break
         }
