@@ -21,7 +21,7 @@ ad_page_contract {
 # Defaults and Security 
 # #####################
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 set query "%${query}%"
 
 # #####################

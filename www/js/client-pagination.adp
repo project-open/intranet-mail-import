@@ -23,7 +23,7 @@
             {key:"to", label:"To"}
         ];
 
-        var myDataSource = new YAHOO.util.DataSource("/intranet-mail-import/get-mail-list?format=json&object_id=@object_id@&");
+        var myDataSource = new YAHOO.util.DataSource("/intranet-mail-import/get-mail-list?format=json&amp;object_id=@object_id@&");
         myDataSource.responseType = YAHOO.util.DataSource.TYPE_JSON;
 
         myDataSource.responseSchema = {
@@ -54,7 +54,7 @@
 		            myDataTable.deleteRow(target);
 		            YAHOO.util.Connect.asyncRequest(
                 		'GET',
-		                '/intranet-mail-import/xmlhttp-remove-mail-assignment?mail_id=' + record.getData('id') + '&object_id=<%=$object_id%>',
+		                '/intranet-mail-import/xmlhttp-remove-mail-assignment?mail_id=' + record.getData('id') + '&amp;object_id=<%=$object_id%>',
                 		{
                 		        success: function (o) {
                                             // this.deleteRow(target);

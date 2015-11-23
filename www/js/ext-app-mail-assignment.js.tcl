@@ -17,7 +17,7 @@ ad_page_contract {
 #   Defaults and Security 
 #-- -------------------------
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 
 set view_mails_all_p [im_permission $user_id view_mails_all]
 if { [im_is_user_site_wide_or_intranet_admin $user_id] } { set view_mails_all_p 1 }

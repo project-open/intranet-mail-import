@@ -1,7 +1,7 @@
 <!-- packages/intranet-mail-import/www/index.adp -->
 <master src="../../intranet-core/www/master">
-<property name="title">@page_title@</property>
-<property name="context">@context_bar@</property>
+<property name="doc(title)">@page_title;literal@</property>
+<property name="context">@context_bar;literal@</property>
 
 <H1>@page_title@</h1>
 

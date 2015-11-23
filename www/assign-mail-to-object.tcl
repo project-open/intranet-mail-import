@@ -42,7 +42,7 @@ if { ![file exists $email_id] } {
 
 # Get file name
 set msg_paths [split $email_id "/"]
-set email_file_name [lindex $msg_paths [expr [llength $msg_paths] - 1] ]
+set email_file_name [lindex $msg_paths [llength $msg_paths]-1]
 	
 ns_log Notice "assign-mail-to-object: object_id: $object_id"
 	
@@ -64,8 +64,8 @@ if { "-1" != $object_id } {
 	set headers [list]
 
 	# walk through the headers and extract each one
-	while ![empty_string_p $line] {
-	    set next_line [lindex $file_lines [expr $i + 1]]
+	while {$line ne ""} {
+	    set next_line [lindex $file_lines $i+1]
 	    if {[regexp {^[ ]*$} $next_line match] && $i > 0} {
 		set end_of_headers_p 1
             }
@@ -94,7 +94,7 @@ if { "-1" != $object_id } {
 	# set body "\n[join [lrange $file_lines $i end] "\n"]"
 	array set email_arr {}
 	acs_mail_lite::parse_email -file $email_id -array email_arr
-	set body [lindex [lindex $email_arr(bodies) 0] 1]
+	set body [lindex $email_arr(bodies) 0 1]
 
 	ns_log Notice "assign-mail-to-object: mail_header='[join $headers "' '"]'"
 

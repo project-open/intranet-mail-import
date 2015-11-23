@@ -138,7 +138,7 @@ Ext.onReady(function(){
                 	    var rec = grid.getStore().getAt(rowIndex);
                     	    // alert(rec.get('msg_name'));
 		                Ext.create('mailOverlay', {
-                                    html: '<iframe src="/intranet-mail-import/mail-view?content_item_id=0&msg_id=' + rec.get('msg_name') + '&view_mode=body" width="100%" height="100%"></iframe>' 
+                                    html: '<iframe src="/intranet-mail-import/mail-view?content_item_id=0&amp;msg_id=' + rec.get('msg_name') + '&amp;view_mode=body" width="100%" height="100%"></iframe>' 
                			 }).show();
                 	}
             	}]

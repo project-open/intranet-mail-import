@@ -229,7 +229,7 @@ namespace eval im_mail_import {
 
 	    # Get the last piece of the Msg
 	    set msg_paths [split $msg "/"]
-	    set msg_body [lindex $msg_paths [expr [llength $msg_paths] - 1] ]
+	    set msg_body [lindex $msg_paths [llength $msg_paths]-1]
 
 	    # Read the entire mail into memory...
             if [catch {
@@ -251,8 +251,8 @@ namespace eval im_mail_import {
             #   Separate HEADERS/BODY      
 	    #-- -----------------------------------------------------
 
-            while ![empty_string_p $line] {
-                set next_line [lindex $file_lines [expr $i + 1]]
+            while {$line ne ""} {
+                set next_line [lindex $file_lines $i+1]
                 if {[regexp {^[ ]*$} $next_line match] && $i > 0} {
                     set end_of_headers_p 1
                 }
@@ -285,7 +285,7 @@ namespace eval im_mail_import {
 
 	    array set email_arr {}
 	    acs_mail_lite::parse_email -file $msg -array email_arr
-	    set body [lindex [lindex $email_arr(bodies) 0] 1]
+	    set body [lindex $email_arr(bodies) 0 1]
         
 	    #-- -----------------------------------------------------
 	    #   EXTRACT & CLEAN HEADERS 
@@ -337,7 +337,7 @@ namespace eval im_mail_import {
             ns_log Notice "im_mail_import.process_mails: rfc822_message_id=$rfc822_message_id"
 
 	    # Move to "/spam" if there is a Spambayes header...
-            if {[string equal "spam" $spam_header] } {
+            if {"spam" eq $spam_header} {
                 if {[catch {
                     ns_log Notice "im_mail_import.process_mails11: Moving '$msg' to spam: '$spam_folder/$msg_body'"
                     append debug "Moving '$msg' to spam: '$spam_folder/$msg_body'\n"
@@ -713,7 +713,7 @@ ad_proc im_mail_import_user_component {
     db_foreach mail_list $sql {
         if { !$yui_support_p } {
             append html_lines "
-                <tr $bgcolor([expr $ctr%2])>
+                <tr $bgcolor([expr {$ctr%2}])>
                         <td>$date_formatted</td>
                         <td><a href=\"/intranet-mail-import/mail-view?body_id=$body_id\" id=\"$body_id\">[string_truncate -len 50 $header_subject]</a></td>
                         <td>[string_truncate -len 25 $header_from]</td>

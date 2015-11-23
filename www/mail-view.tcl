@@ -18,7 +18,7 @@ ad_page_contract {
 #   Defaults and Security   
 #-- ------------------------------------------
 
-set current_user_id [ad_maybe_redirect_for_registration]
+set current_user_id [auth::require_login]
 
 # Check Permission  
 if { 0 != $content_item_id } {
@@ -82,9 +82,9 @@ if { 0 != $content_item_id } {
 
 		foreach url $list_attachments {
 		    set file_path [im_filestorage_project_path_helper $object_id]
-		    set cr_item_id [string range $url [expr [string length $file_path]+7] [expr [string length $file_path] + [string length :body_id] + 3 ] ]
+		    set cr_item_id [string range $url [expr {[string length $file_path]+7}] [expr {[string length $file_path] + [string length :body_id] + 3 }] ]
 		    if { 0 == [string compare $body_id $cr_item_id] } {
-			set file_name [string range $url [expr [string length $file_path] + [string length $body_id] + 8] [string length $url]]
+			set file_name [string range $url [expr {[string length $file_path] + [string length $body_id] + 8}] [string length $url]]
 			set file_extension [file extension $url]
 			set file_icon [im_filestorage_file_type_icon $file_extension]
 			set rel_file_path "/intranet/download/project/$object_id/mails/$body_id/$file_name"
@@ -108,9 +108,9 @@ if { 0 != $content_item_id } {
 		}
                 append attachment_html "<div style='width:600px;'>"
                 foreach url $list_attachments {
-                    set cr_item_id [string range $url [expr [string length $file_path]+7] [expr [string length $file_path] + [string length :body_id] + 3 ] ]
+                    set cr_item_id [string range $url [expr {[string length $file_path]+7}] [expr {[string length $file_path] + [string length :body_id] + 3 }] ]
                     if { 0 == [string compare $body_id $cr_item_id] } {
-                        set file_name [string range $url [expr [string length $file_path] + [string length $body_id] + 8] [string length $url]]
+                        set file_name [string range $url [expr {[string length $file_path] + [string length $body_id] + 8}] [string length $url]]
                         set file_extension [file extension $url]
                         set file_icon [im_filestorage_file_type_icon $file_extension]
                         set rel_file_path "/intranet/download/user/$object_id/mails/$body_id/$file_name"
@@ -142,7 +142,7 @@ if { 0 != $content_item_id } {
 
 	        # Get the last piece of the Msg
         	set msg_paths [split $msg "/"]
-	        set msg_body [lindex $msg_paths [expr [llength $msg_paths] - 1] ]
+	        set msg_body [lindex $msg_paths [llength $msg_paths]-1]
 
 	        # Read the entire mail into memory...
         	if [catch {
@@ -160,8 +160,8 @@ if { 0 != $content_item_id } {
 	        set headers [list]
 
         	# walk through the headers and extract each one
-	        while ![empty_string_p $line] {
-        	    set next_line [lindex $file_lines [expr $i + 1]]
+	        while {$line ne ""} {
+        	    set next_line [lindex $file_lines $i+1]
 	            if {[regexp {^[ ]*$} $next_line match] && $i > 0} {
         	            set end_of_headers_p 1
             	    }
@@ -189,7 +189,7 @@ if { 0 != $content_item_id } {
 
 		array set email_arr {}
 		acs_mail_lite::parse_email -file $msg -array email_arr
-		set body [lindex [lindex $email_arr(bodies) 0] 1]
+		set body [lindex $email_arr(bodies) 0 1]
 
 	        # Extract headers values
         	array set email_headers $headers
@@ -214,6 +214,6 @@ if { 0 != $content_item_id } {
 if { [string first "<html>" [string tolower $body]] != -1 } {
     set start_html [string first "<html>" [string tolower $body]]
     set stop_html [string first "</html>" [string tolower $body]]
-    set body [string range $body $start_html [expr $stop_html + 7]]
+    set body [string range $body $start_html $stop_html+7]
 }
 

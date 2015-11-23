@@ -81,7 +81,7 @@ ad_page_contract {
 
 	# Get the last piece of the Msg
 	set msg_paths [split $msg "/"]
-	set msg_body [lindex $msg_paths [expr [llength $msg_paths] - 1] ]
+	set msg_body [lindex $msg_paths [llength $msg_paths]-1]
 
 	# Read the entire mail into memory...
 	if [catch {
@@ -100,8 +100,8 @@ ad_page_contract {
 	set headers [list]
 	        
             # walk through the headers and extract each one
-	while ![empty_string_p $line] {
-	    set next_line [lindex $file_lines [expr $i + 1]]
+	while {$line ne ""} {
+	    set next_line [lindex $file_lines $i+1]
 	    if {[regexp {^[ ]*$} $next_line match] && $i > 0} {
                     set end_of_headers_p 1
 	    }

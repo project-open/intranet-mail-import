@@ -16,7 +16,7 @@ ad_page_contract {
     { object_id }
 } 
 
-set user_id [ad_maybe_redirect_for_registration]
+set user_id [auth::require_login]
 set object_type [db_string object_type "select object_type from acs_objects where object_id= :object_id" -default 0]
 
 # --------------------------------------------------
