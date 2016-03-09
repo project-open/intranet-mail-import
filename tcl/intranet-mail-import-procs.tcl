@@ -68,7 +68,7 @@ namespace eval im_mail_import {
     }
 
     ad_proc -public extract_project_nrs { line } {
-        Extract all project_nrs (2007_xxxx) from an email header line
+        Extract all project_nrs (2007_0001) from an email header line
     } {
 	ns_log Notice "im_mail_import.extract_project_nrs: line=$line"
 	set line [string tolower $line]
