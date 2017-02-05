@@ -140,6 +140,26 @@ select acs_rel_type__create_type (
 
 
 
+
+------------------------------------------------
+-- Privileges
+
+-- Access permission 'Mail Dispatcher' 
+select acs_privilege__create_privilege('admin_mail_dispatcher','Admin Mail Dispatcher','Admin Mail Dispatcher');
+select acs_privilege__add_child('admin', 'admin_mail_dispatcher');
+
+select im_priv_create('admin_mail_dispatcher', 'Senior Managers');
+
+-- View mails all 
+select acs_privilege__create_privilege('view_mails_all','View Mails All','View Mails All');
+select acs_privilege__add_child('admin', 'view_mails_all');
+
+select im_priv_create('view_mails_all', 'Senior Managers');
+
+
+
+
+
 -------------------------------------------
 -- create components
 
