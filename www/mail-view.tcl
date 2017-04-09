@@ -99,7 +99,7 @@ if { 0 != $content_item_id } {
 		if { [catch {
 		    set file_path [im_filestorage_user_path $object_id]
 		    set find_cmd [im_filestorage_find_cmd]
-		    set file_list [exec $find_cmd $file_path -noleaf -type f]
+		    set file_list [im_exec $find_cmd $file_path -noleaf -type f]
 		    set list_attachments [lsort [split $file_list "\n"]]
 		} err_msg] } {
 		    # Probably some permission errors - return empty string
