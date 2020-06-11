@@ -41,15 +41,13 @@ if {0} {
     set html "<pre>\n"
     set header_vars [ns_conn headers]
     foreach var [ad_ns_set_keys $header_vars] {
-	set value [ns_set get $header_vars $var]
-	
+	set value [im_opt_val -limit_to nohtml $var]
 	append html "header:	$var	= $value\n"
     }
     set form_vars [ns_conn form]
     if {"" != $form_vars} {
 	foreach var [ad_ns_set_keys $form_vars] {
-	    set value [ns_set get $form_vars $var]
-	    
+	    set value [im_opt_val -limit_to nohtml $var]
 	    append html "form:	$var	= $value\n"
 	}
     }
