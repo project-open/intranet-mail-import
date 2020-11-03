@@ -4,7 +4,7 @@
     background: transparent url(/intranet/images/navbar_default/delete.png) no-repeat center center;
 }
 </style>
-<script type="text/javascript">
+<script type="text/javascript" <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
 
       // src: intranet-mail-import/www/js/client-pagination.adp
       YAHOO.util.Event.addListener(window, "load", function() {

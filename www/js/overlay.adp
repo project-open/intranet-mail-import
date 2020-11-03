@@ -9,7 +9,7 @@
 		<button id="hide2" style="float:right;">Close</button>
 	</div>
 
-<script type="text/javascript">
+<script type="text/javascript" <if @::__csp_nonce@ not nil>nonce="@::__csp_nonce;literal@"</if>>
     YAHOO.namespace("mail_import.container");
     function interceptLink(e) {
         YAHOO.util.Event.preventDefault(e);
