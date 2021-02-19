@@ -3,7 +3,7 @@
 # Copyright (C) 2003 - 2012 ]project-open[
 #
 # All rights reserved. Please check
-# http://www.project-open.com/ for licensing details.
+# https://www.project-open.com/ for licensing details.
 #
 # Most of the code had been taken from mail-import-procs.tcl
   
